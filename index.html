@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat IA</title>
+    <style>
+        body {font-family: Arial, sans-serif; margin: 20px;}
+        #chat {border: 1px solid #ccc; padding: 10px; height: 400px; overflow-y: auto;}
+        .msg {margin: 5px 0;}
+        .user {color: #0066cc;}
+        .bot {color: #333;}
+        #input {width: 80%; padding: 8px;}
+        #send {padding: 8px 12px;}
+    </style>
+</head>
+<body>
+    <h2>Chat con IA</h2>
+    <div id="chat"></div>
+    <input id="input" type="text" placeholder="Escribe tu mensaje..." />
+    <button id="send">Enviar</button>
+
+    <script>
+        const chatDiv = document.getElementById('chat');
+        const input = document.getElementById('input');
+        const sendBtn = document.getElementById('send');
+
+        // Cambia esta URL si usas otro servicio serverless
+        const PROXY_URL = '/.netlify/functions/ai-proxy';
+
+        function addMessage(text, sender) {
+            const p = document.createElement('p');
+            p.className = 'msg ' + (sender === 'user' ? 'user' : 'bot');
+            p.textContent = (sender === 'user' ? 'Tú: ' : 'IA: ') + text;
+            chatDiv.appendChild(p);
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const userMsg = input.value.trim();
+            if (!userMsg) return;
+            addMessage(userMsg, 'user');
+            input.value = '';
+            try {
+                const resp = await fetch(PROXY_URL, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({message: userMsg})
+                });
+                const data = await resp.json();
+                if (data.error) {
+                    addMessage('Error: ' + data.error, 'bot');
+                } else {
+                    addMessage(data.reply, 'bot');
+                }
+            } catch (e) {
+                addMessage('Falla de red', 'bot');
+            }
+        }
+
+        sendBtn.onclick = sendMessage;
+        input.addEventListener('keypress', e => { if (e.key === 'Enter') sendMessage(); });
+    </script>
+</body>
+  </html>
